@@ -29,7 +29,7 @@ parameters = {
 
     # Saving Weights
     'save_name': 'run_fcn', # Name of the file to save the trained weights
-    'save_criteria': 'F1', # Metric to use for saving the best weights (Currently supported: F1, Accuracy, Loss, Sensitivity, Specificity)
+    'save_criteria': 'IoU', # Metric to use for saving the best weights (Currently supported: F1, Accuracy, Loss, Sensitivity, Specificity)
     'weights_path': '../results/weights/', # Path to save the weights
 
     # Saving Testing Results

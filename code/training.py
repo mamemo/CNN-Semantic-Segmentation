@@ -133,10 +133,10 @@ def train_validate(model, train_loader, val_loader, optimizer,\
             best_model = {'epoch': epoch,\
                 'model_state_dict': model.state_dict(),\
                 'optimizer_state_dict': optimizer.state_dict(),\
-                'accuracy': metrics['Model Accuracy'][0],\
+                'dice': metrics['Model Dice'][0],\
                 'loss': metrics["Model Loss"][0],\
-                'sensitivity': metrics["Model Sensitivity"][0],\
-                'specificity': metrics["Model Specificity"][0]}
+                'iou': metrics["Model IoU"][0],\
+                'pixel_acc': metrics["Model Pixel Accuracy"][0]}
 
     # Save model
     save_path = '{}{}_{}_{:.6}.pth'.format(weights_path, save_name,\
