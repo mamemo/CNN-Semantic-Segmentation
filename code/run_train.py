@@ -11,12 +11,12 @@ import pathlib
 import numpy as np
 
 import torch
-from torch import nn
 
 from hyperparameters import parameters as params
 from models import *
 from dataset import get_aug_dataloader, get_dataloader
 from training import train_validate
+from focal_loss import FocalLoss
 
 
 def seed_everything(seed):
@@ -58,7 +58,7 @@ def main():
             data_std=params['data_std'])
 
     # Creates the criterion (loss function)
-    criterion = nn.CrossEntropyLoss()
+    criterion = FocalLoss(gamma=2, alpha=0.8)
 
     # Creates optimizer (Changes the weights based on loss)
     if params['optimizer'] == 'ADAM':

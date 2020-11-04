@@ -12,38 +12,39 @@
 
 from torch import nn
 from torchvision import models
-from efficientnet_pytorch import EfficientNet
+from torchvision.models.segmentation.fcn import FCNHead
+from torchvision.models.segmentation.deeplabv3 import DeepLabHead
 
 
-def resnet18():
+def fcn():
     """
-        efficientnet ResNet 18 model definition.
+        fcn FCN ResNet 50 model definition.
     """
 
-    model = models.resnet18(pretrained=True)
+    model = models.segmentation.fcn_resnet101(pretrained=True)
 
     # To freeze layers
     for param in model.parameters():
         param.requires_grad = False
 
     # New output layers
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 2)
+    model.classifier = FCNHead(2048, 2)
+    model.aux_classifier = FCNHead(2048, 2)
 
     return model
 
 
-def efficientnet():
+def deeplab():
     """
-        efficientnet EfficientNet B4 model definition.
+        deeplab DeepLab V3 - ResNet 101 model definition.
     """
 
-    model = EfficientNet.from_pretrained('efficientnet-b4')
+    model = models.segmentation.deeplabv3_resnet101(pretrained=True)
 
     # To freeze layers
     for param in model.parameters():
         param.requires_grad = False
 
-    model._fc = nn.Linear(in_features=model._fc.in_features, out_features=2)
+    model.classifier = DeepLabHead(2048, 2)
 
     return model

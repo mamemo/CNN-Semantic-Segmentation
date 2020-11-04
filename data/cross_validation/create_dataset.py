@@ -9,8 +9,8 @@
     data/
         cross_validation/  (The folder you're currently in)
         dataset/
-            0/
-            1/
+            imgs/
+            anns/
         preprocessing/
 
     You must change the logic to read your dataset in case it follows another structure.
@@ -33,10 +33,10 @@ IMAGE_EXTENSION = '*.png' # Change for the extension of your images
 print('Reading Dataset...')
 
 # Get absolute paths to all images in dataset
-images = glob.glob(DATASET_FOLDER + '*' + SPLIT_CHAR + IMAGE_EXTENSION)
+images = glob.glob(DATASET_FOLDER + 'imgs/*' + SPLIT_CHAR + IMAGE_EXTENSION)
 
-# Get labels per image
-labels = [int(img.split(SPLIT_CHAR)[-2]) for img in images]
+# Get annotations
+labels = glob.glob(DATASET_FOLDER + 'anns/*' + SPLIT_CHAR + IMAGE_EXTENSION)
 
 
 print("Splitting dataset...")
@@ -48,25 +48,23 @@ test_ratio = 0.15
 
 train_x, test_x, train_y, test_y = train_test_split(\
                                     images, labels,\
-                                    train_size=train_ratio,\
-                                    stratify=labels)
+                                    train_size=train_ratio)
 val_x, test_x, val_y, test_y = train_test_split(\
                                     test_x, test_y,\
-                                    test_size=test_ratio/(test_ratio+val_ratio),\
-                                    stratify=test_y)
+                                    test_size=test_ratio/(test_ratio+val_ratio))
 
 
 print("Saving datasets...")
 
 # Save the splits on csv files
-dataset_df = pd.DataFrame({'ID_IMG':images, 'LABEL': labels})
+dataset_df = pd.DataFrame({'ID_IMG':images, 'ANNOTATION': labels})
 dataset_df.to_csv('../full_dataset_labels.csv')
 
-train_df = pd.DataFrame({'ID_IMG':train_x, 'LABEL': train_y})
+train_df = pd.DataFrame({'ID_IMG':train_x, 'ANNOTATION': train_y})
 train_df.to_csv('../train_labels.csv')
 
-val_df = pd.DataFrame({'ID_IMG':val_x, 'LABEL': val_y})
+val_df = pd.DataFrame({'ID_IMG':val_x, 'ANNOTATION': val_y})
 val_df.to_csv('../val_labels.csv')
 
-test_df = pd.DataFrame({'ID_IMG':test_x, 'LABEL': test_y})
+test_df = pd.DataFrame({'ID_IMG':test_x, 'ANNOTATION': test_y})
 test_df.to_csv('../test_labels.csv')

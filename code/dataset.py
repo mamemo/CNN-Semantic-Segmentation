@@ -6,7 +6,7 @@
 """
 
 import pandas as pd
-from PIL import Image
+# from PIL import Image
 import cv2
 import numpy as np
 
@@ -14,7 +14,8 @@ import torch
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from imgaug import augmenters as iaa
+# from imgaug import augmenters as iaa
+import albumentations as A
 
 
 class CustomDataset(Dataset):
@@ -22,13 +23,13 @@ class CustomDataset(Dataset):
         Defines a Custom Dataset
     """
     
-    def __init__(self, ids, labels, transf):
+    def __init__(self, ids, anns, transf):
         """
             init Constructor
 
             @param self Object.
             @param ids Path to the images.
-            @param labels Labels of the images.
+            @param anns Annotations of the images.
             @param transf Transformations to apply.
         """
         super().__init__()
@@ -38,7 +39,7 @@ class CustomDataset(Dataset):
 
         # Images IDS amd Labels
         self.ids = ids
-        self.labels = torch.LongTensor(labels)
+        self.anns = anns
 
         # Calculate len of data
         self.data_len = len(self.ids)
@@ -52,61 +53,21 @@ class CustomDataset(Dataset):
         """
         # Get an ID of a specific image
         id_img = self.ids[index]
+        id_ann = self.anns[index]
 
         # Open Image
         img = cv2.imread(id_img)
-        img = cv2.convertScaleAbs(img)
-        if img.ndim == 2:
-            img = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
+
+        # Open Annotation
+        ann = cv2.imread(id_ann, 0)
 
         # Applies transformations
-        if self.transforms:
-            img = self.transforms(img)
+        augmented = self.transforms(image=img, mask=ann)
 
-        # Get Label
-        label = self.labels[index]
-
-        return (id_img, img, label)
+        return (id_img, augmented['image'], augmented['mask'])
 
     def __len__(self):
         return self.data_len
-
-
-class ImgAugTransform(object):
-    """
-        Class to define the transformations to apply to the images.
-    """
-    def __init__(self):
-        """
-            init Constructor
-
-            @param self Object.
-        """
-        self.aug = iaa.Sequential([
-            # Blur or Sharpness
-            iaa.Sometimes(0.25,
-                            iaa.OneOf([iaa.GaussianBlur(sigma=(0, 1.0)),
-                                     iaa.pillike.EnhanceSharpness(factor=(0.8,1.5))])),
-            # Flip horizontally
-            iaa.Fliplr(0.5),
-            # Rotation
-            iaa.Rotate((-20, 20)),
-            # Pixel Dropout
-            iaa.Sometimes(0.25,
-                            iaa.OneOf([iaa.Dropout(p=(0, 0.1)),
-                                     iaa.CoarseDropout(0.1, size_percent=0.5)])),
-            # Color
-            iaa.AddToHueAndSaturation(value=(-10, 10), per_channel=True),
-        ])
-    def __call__(self, img):
-        """
-            call What to do when applied to an image
-
-            @param self Object.
-            @param img Image to work on.
-        """
-        img = np.array(img)
-        return self.aug.augment_image(img)
 
 
 def read_dataset(dir_img):
@@ -118,8 +79,8 @@ def read_dataset(dir_img):
 
     images = pd.read_csv(dir_img)
     ids = images['ID_IMG'].tolist()
-    labels = images['LABEL'].tolist()
-    return ids, labels
+    anns = images['ANNOTATION'].tolist()
+    return ids, anns
 
 
 def get_aug_dataloader(train_file, img_size, batch_size, data_mean, data_std):
@@ -134,24 +95,32 @@ def get_aug_dataloader(train_file, img_size, batch_size, data_mean, data_std):
     """
     
     # Read the dataset
-    ids, labels = read_dataset(train_file)
+    ids, anns = read_dataset(train_file)
 
     #Transformations
-    train_transform = transforms.Compose([
-        transforms.ToPILImage(mode='RGB'),
-        transforms.Resize([img_size]*2, Image.BICUBIC),
+    train_transform = A.Compose([
+        A.Resize(img_size, img_size),
 
         # Augmentation
-        ImgAugTransform(),
+        A.OneOrOther(
+            A.GaussianBlur(),
+            A.IAASharpen(),
+            p=0.25
+        ),
+        A.HorizontalFlip(p=0.5),
+        A.ShiftScaleRotate(p=0.8),
+        A.CLAHE(p=0.5),
+        A.RandomBrightnessContrast(p=0.8),    
+        A.RandomGamma(p=0.8),
 
-        transforms.ToTensor(),
-        transforms.Normalize(data_mean, data_std) # Change for every dataset
+        A.Normalize(mean=data_mean, std=data_std),
+        A.pytorch.ToTensorV2()
     ])
 
     print("Training Dataset Size: ", len(ids))
 
     # Create the dataset
-    train_dataset = CustomDataset(ids=ids, labels=labels, transf=train_transform)
+    train_dataset = CustomDataset(ids=ids, anns=anns, transf=train_transform)
 
     # Create the loader
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -172,20 +141,19 @@ def get_dataloader(data_file, img_size, batch_size, data_mean, data_std, data_sp
     """
 
     # Read the dataset
-    ids, labels = read_dataset(data_file)
+    ids, anns = read_dataset(data_file)
 
     # Transformations
-    test_transform = transforms.Compose([
-        transforms.ToPILImage(mode='RGB'),
-        transforms.Resize([img_size]*2, Image.BICUBIC),
-        transforms.ToTensor(),
-        transforms.Normalize(data_mean, data_std)
+    test_transform = A.Compose([
+        A.Resize(img_size, img_size),
+        A.Normalize(mean=data_mean, std=data_std),
+        A.pytorch.ToTensorV2()
     ])
 
     print(data_split+" Dataset Size: ", len(ids))
 
     # Create the dataset
-    dataset = CustomDataset(ids=ids, labels=labels, transf=test_transform)
+    dataset = CustomDataset(ids=ids, anns=anns, transf=test_transform)
 
     # Create the loaders
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
