@@ -28,7 +28,6 @@ def fcn():
 
     # New output layers
     model.classifier = FCNHead(2048, 1)
-    model.aux_classifier = FCNHead(2048, 1)
 
     return model
 
