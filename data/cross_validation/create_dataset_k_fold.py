@@ -23,6 +23,9 @@ import pandas as pd
 from sklearn.model_selection import KFold
 
 
+# Create folder for csv files
+pathlib.Path('../k_fold/').mkdir(parents=True, exist_ok=True)
+
 #! /////////// Change code to read your dataset //////
 
 SPLIT_CHAR = '/' # Change for \\ if you're using Windows
