@@ -6,16 +6,12 @@
 """
 
 import pandas as pd
-# from PIL import Image
 import cv2
-import numpy as np
 
-import torch
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
-from torchvision import transforms
-# from imgaug import augmenters as iaa
 import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 
 class CustomDataset(Dataset):
@@ -64,7 +60,7 @@ class CustomDataset(Dataset):
         # Applies transformations
         augmented = self.transforms(image=img, mask=ann)
 
-        return (id_img, augmented['image'], augmented['mask'])
+        return (id_img, augmented['image'], augmented['mask']/255)
 
     def __len__(self):
         return self.data_len
@@ -114,7 +110,7 @@ def get_aug_dataloader(train_file, img_size, batch_size, data_mean, data_std):
         A.RandomGamma(p=0.8),
 
         A.Normalize(mean=data_mean, std=data_std),
-        A.pytorch.ToTensorV2()
+        ToTensorV2()
     ])
 
     print("Training Dataset Size: ", len(ids))
@@ -147,7 +143,7 @@ def get_dataloader(data_file, img_size, batch_size, data_mean, data_std, data_sp
     test_transform = A.Compose([
         A.Resize(img_size, img_size),
         A.Normalize(mean=data_mean, std=data_std),
-        A.pytorch.ToTensorV2()
+        ToTensorV2()
     ])
 
     print(data_split+" Dataset Size: ", len(ids))

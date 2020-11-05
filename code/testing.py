@@ -43,7 +43,7 @@ def test(model, dataloader, criterion, device):
             inputs, labels = inputs.to(device), labels.to(device)
 
             # Get predictions
-            outputs = model(inputs)
+            outputs = model(inputs)['out']
             # probs = F.softmax(outputs, dim=1).data.cpu().numpy()[0]
             _, predicted = torch.max(outputs.data, 1)
 

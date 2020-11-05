@@ -13,7 +13,6 @@
 """
 
 
-import numpy as np
 import torch
 from torch import nn
 
@@ -50,9 +49,9 @@ class Metrics():
             @param preds Predicted outputs.
             @param loss Loss of predictions over labels.
         """
-        self.dice += self.diceCoeff(gt=labels, pred=preds)
-        self.iou += self.miou(labels=labels, preds=preds)
-        self.accuracy += self.pixel_accuracy(labels=labels, preds=preds)
+        self.dice += self.diceCoeff(labels=labels, preds=preds).item()
+        self.iou += self.miou(labels=labels, preds=preds).item()
+        self.accuracy += self.pixel_accuracy(labels=labels, preds=preds).item()
 
         self.loss += loss
         self.batches += 1
@@ -67,7 +66,7 @@ class Metrics():
         return {
             "Model Dice":           [self.dice / self.batches],
             "Model IoU":            [self.iou / self.batches],
-            "Model Pixel Accuracy": [self.accuracy / self.batches]
+            "Model Pixel Accuracy": [self.accuracy / self.batches],
             "Model Loss":           [self.loss]
         }
 
@@ -97,25 +96,25 @@ class Metrics():
         return summ
 
 
-    def diceCoeff(self, gt, pred, eps=1e-5):
+    def diceCoeff(self, labels, preds, eps=1e-5):
         """
             diceCoeff Measures the Dice Coefficient of the predictions.
 
             @param self Object.
-            @param gt Annotations that come as groundtruth.
-            @param pred Predictions made by the model.
+            @param labels Annotations that come as groundtruth.
+            @param preds Predictions made by the model.
             @param eps Epsilon to avoid undetermined division.
         """
 
-        pred = self.activation_fn(pred)
+        preds = self.activation_fn(preds)
     
-        N = gt.size(0)
-        pred_flat = pred.view(N, -1)
-        gt_flat = gt.view(N, -1)
+        N = labels.size(0)
+        preds_flat = preds.view(N, -1)
+        labels_flat = labels.view(N, -1)
     
-        tp = torch.sum(gt_flat * pred_flat, dim=1)
-        fp = torch.sum(pred_flat, dim=1) - tp
-        fn = torch.sum(gt_flat, dim=1) - tp
+        tp = torch.sum(labels_flat * preds_flat, dim=1)
+        fp = torch.sum(preds_flat, dim=1) - tp
+        fn = torch.sum(labels_flat, dim=1) - tp
         loss = (2 * tp + eps) / (2 * tp + fp + fn + eps)
         return loss.sum() / N
 
@@ -130,14 +129,18 @@ class Metrics():
             @param eps Epsilon to avoid undetermined division.
         """
 
-        preds = self.activation_fn(preds)
+        preds = self.activation_fn(preds.float())
 
-        intersection = (preds & labels).float().sum((2, 3))  # Will be zero if Truth=0 or Prediction=0
-        union = (preds | labels).float().sum((2, 3))
+        N = labels.size(0)
+        preds_flat = preds.view(N, -1)
+        labels_flat = labels.view(N, -1)
 
-        result = (intersection + eps * (union == 0)) / (union - intersection + eps)
+        tp = torch.sum(labels_flat * preds_flat, dim=1)
+        fp = torch.sum(preds_flat, dim=1) - tp
+        fn = torch.sum(labels_flat, dim=1) - tp
 
-        return result.mean()
+        loss = (tp + eps) / (tp + fp + fn + eps)
+        return loss.sum() / N
 
 
     def pixel_accuracy(self, labels, preds):
@@ -151,4 +154,4 @@ class Metrics():
 
         tmp = preds == labels
 
-        return (torch.sum(tmp).float() / preds.nelement())
+        return torch.sum(tmp).float() / preds.nelement()

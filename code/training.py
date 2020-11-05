@@ -37,9 +37,10 @@ def train(model, dataloader, optimizer, criterion, device):
 
         # Transforming inputs
         inputs, labels = inputs.to(device), labels.to(device)
+        labels = labels.unsqueeze(dim=1)
 
         # Forward Pass
-        outputs = model(inputs)
+        outputs = model(inputs)['out']
 
         # Get loss
         loss = criterion(outputs, labels)
@@ -80,9 +81,10 @@ def validate(model, dataloader, criterion, device):
 
             # Transforming inputs
             inputs, labels = inputs.to(device), labels.to(device)
+            labels = labels.unsqueeze(dim=1)
 
             # Forward Pass
-            outputs = model(inputs)
+            outputs = model(inputs)['out']
 
             # Get loss
             loss = criterion(outputs, labels)

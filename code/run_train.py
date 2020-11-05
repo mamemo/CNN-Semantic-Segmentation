@@ -58,7 +58,7 @@ def main():
             data_std=params['data_std'])
 
     # Creates the criterion (loss function)
-    criterion = FocalLoss(gamma=2, alpha=0.8)
+    criterion = FocalLoss(gamma=2, alpha=0.8, logits=True)
 
     # Creates optimizer (Changes the weights based on loss)
     if params['optimizer'] == 'ADAM':

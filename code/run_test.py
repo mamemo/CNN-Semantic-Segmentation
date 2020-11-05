@@ -10,12 +10,12 @@ import glob
 import pathlib
 
 import torch
-from torch import nn
 
 from hyperparameters import parameters as params
 import models
 from dataset import get_dataloader
 from testing import test_report
+from focal_loss import FocalLoss
 
 
 def main():
@@ -36,7 +36,7 @@ def main():
             data_split='Testing')
 
     # Creates the criterion (loss function)
-    criterion = nn.CrossEntropyLoss()
+    criterion = FocalLoss(gamma=2, alpha=0.8, logits=True)
 
     # Weights Load Up
     weights_file = glob.glob(params['weights_path']+'/'+params['save_name']+'*.pth')[0]

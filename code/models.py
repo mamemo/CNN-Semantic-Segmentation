@@ -10,7 +10,6 @@
 """
 
 
-from torch import nn
 from torchvision import models
 from torchvision.models.segmentation.fcn import FCNHead
 from torchvision.models.segmentation.deeplabv3 import DeepLabHead
@@ -28,8 +27,8 @@ def fcn():
         param.requires_grad = False
 
     # New output layers
-    model.classifier = FCNHead(2048, 2)
-    model.aux_classifier = FCNHead(2048, 2)
+    model.classifier = FCNHead(2048, 1)
+    model.aux_classifier = FCNHead(2048, 1)
 
     return model
 
@@ -45,6 +44,6 @@ def deeplab():
     for param in model.parameters():
         param.requires_grad = False
 
-    model.classifier = DeepLabHead(2048, 2)
+    model.classifier = DeepLabHead(2048, 1)
 
     return model
