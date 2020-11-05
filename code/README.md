@@ -1,6 +1,6 @@
 # Code Folder
 
-In this folder you will find all necessary files to train and test an binary CNN model for classification.
+In this folder you will find all necessary files to train and test an binary CNN model for segmentation.
 
 ## Files
 * [__dataset.py:__](./dataset.py) This file creates a custom dataset and dataloaders to read and load your own images.

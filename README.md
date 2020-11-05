@@ -1,7 +1,7 @@
-# CNN Binary Classification Template
+# CNN Semantic Segmentation Template
 
-This project is meant to work as a template for a binary CNN classification problem. 
-You are encourage to use this code as a base for your project, modifying it when it's necessary.
+This project is meant to work as a template for a binary CNN semantic segmentation problem. 
+You are encourage to use this code as a base for your project, modifying it where it's necessary.
 
 ## Installation
 
@@ -9,7 +9,7 @@ Before you clone this repo first do the following:
 
 1. Fork this repo. This will create you a copy of this repo on your own account, allowing you to modify it as you please and commit those changes. Otherwise you won't be able to commit any changes unless it's a contribution, in that case, please submit a pull request.
 2. Once you forked the repo, go to your account and clone the repo as you would normally.
-3. ```cd PATH/CNN-Binary-Classification/``` In a terminal go to the project folder.
+3. ```cd PATH_TO_REPO/``` In a terminal go to the project folder.
 4. ```pip install -r requeriments.txt``` Install all requirements. (Note: Pytorch version might need to installed separately. For more installing info visit [__pytorch.org__](https://pytorch.org/))
 5. Change the code and have fun!
 
@@ -28,7 +28,7 @@ Before you clone this repo first do the following:
 
 ## Future work
 1. Parallel training: Support for training on multiple GPUs.
-2. Multiclass classification: Extending the code for multiple classes instead of binary.
+2. Multiclass segmentation: Extending the code for multiple classes instead of binary.
 3. More hyperparameters: Give more options to you (optimizers, losses, metrics, models).
 
 ## Author:
