@@ -106,7 +106,7 @@ class Metrics():
             @param eps Epsilon to avoid undetermined division.
         """
 
-        preds = self.activation_fn(preds)
+        preds = self.activation_fn(preds.float())
     
         N = labels.size(0)
         preds_flat = preds.view(N, -1)
