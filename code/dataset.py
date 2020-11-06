@@ -7,6 +7,7 @@
 
 import pandas as pd
 import cv2
+import numpy as np
 
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
@@ -57,6 +58,7 @@ class CustomDataset(Dataset):
 
         # Open Annotation
         mask = cv2.imread(id_mask, 0)
+        mask = np.expand_dims(mask, axis=-1)
 
         # Applies transformations
         # Apply augmentations

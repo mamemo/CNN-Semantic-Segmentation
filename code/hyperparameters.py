@@ -31,7 +31,7 @@ parameters = {
 
     # Saving Weights
     'save_name': 'run_unet', # Name of the file to save the trained weights
-    'save_criteria': 'IoU', # Metric to use for saving the best weights (Currently supported: F1, Accuracy, Loss, Sensitivity, Specificity)
+    'save_criteria': 'iou_score', # Metric to use for saving the best weights (Currently supported: dice_loss, iou_score, fscore, accuracy, recall, precision)
     'weights_path': '../results/weights/', # Path to save the weights
 
     # Saving Testing Results
