@@ -8,98 +8,99 @@
 import torch
 from barbar import Bar
 
-from metrics import Metrics
+import segmentation_models_pytorch as smp
 
 
-def train(model, dataloader, optimizer, criterion, device):
-    """
-        train Runs one epoch of training.
+# def train(model, dataloader, optimizer, criterion, device):
+#     """
+#         train Runs one epoch of training.
 
-        @param model Model to train.
-        @param dataloader Images to train with.
-        @param optimizer Optimizer to update weights.
-        @param criterion Loss criterion.
-        @param device Use of GPU.
-    """
+#         @param model Model to train.
+#         @param dataloader Images to train with.
+#         @param optimizer Optimizer to update weights.
+#         @param criterion Loss criterion.
+#         @param device Use of GPU.
+#     """
 
-    # Prepare the model
-    model.to(device)
-    model.train()
+#     # Prepare the model
+#     model.to(device)
+#     model.train()
 
-    # Creates metrics recorder
-    metrics = Metrics()
+#     # Creates metrics recorder
+#     metrics = Metrics()
 
-    # Iterates over batches
-    for (_, inputs, labels) in Bar(dataloader):
+#     # Iterates over batches
+#     for (_, inputs, labels) in Bar(dataloader):
 
-        # Clean gradients in the optimizer
-        optimizer.zero_grad()
+#         # Clean gradients in the optimizer
+#         optimizer.zero_grad()
 
-        # Transforming inputs
-        inputs, labels = inputs.to(device), labels.to(device)
-        labels = labels.unsqueeze(dim=1)
+#         # Transforming inputs
+#         inputs, labels = inputs.to(device), labels.to(device)
+#         labels = labels.unsqueeze(dim=1)
 
-        # Forward Pass
-        outputs = model(inputs)['out']
+#         # Forward Pass
+#         outputs = model(inputs)['out']
 
-        # Get loss
-        loss = criterion(outputs, labels)
+#         # Get loss
+#         loss = criterion(outputs, labels)
 
-        # Backward Pass, updates weights and optimizer
-        loss.backward()
-        optimizer.step()
+#         # Backward Pass, updates weights and optimizer
+#         loss.backward()
+#         optimizer.step()
 
-        # Register on metrics
-        _, predicted = torch.max(outputs.data, 1)
-        metrics.batch(labels=labels, preds=predicted, loss=loss.item())
+#         # Register on metrics
+#         _, predicted = torch.max(outputs.data, 1)
+#         metrics.batch(labels=labels, preds=predicted, loss=loss.item())
 
-    # Print training metrics
-    metrics.print_one_liner()
-    return metrics.summary()
+#     # Print training metrics
+#     metrics.print_one_liner()
+#     return metrics.summary()
 
 
-def validate(model, dataloader, criterion, device):
-    """
-        validate Runs one epoch of validation.
+# def validate(model, dataloader, criterion, device):
+#     """
+#         validate Runs one epoch of validation.
 
-        @param model Model to train.
-        @param dataloader Images to train with.
-        @param criterion Loss criterion.
-        @param device Use of GPU.
-    """
+#         @param model Model to train.
+#         @param dataloader Images to train with.
+#         @param criterion Loss criterion.
+#         @param device Use of GPU.
+#     """
 
-    # Prepare the model
-    model.to(device)
-    model.eval()
+#     # Prepare the model
+#     model.to(device)
+#     model.eval()
 
-    # Creates metrics recorder
-    metrics = Metrics()
+#     # Creates metrics recorder
+#     metrics = Metrics()
 
-    with torch.no_grad():
-        # Iterates over batches
-        for (_, inputs, labels) in Bar(dataloader):
+#     with torch.no_grad():
+#         # Iterates over batches
+#         for (_, inputs, labels) in Bar(dataloader):
 
-            # Transforming inputs
-            inputs, labels = inputs.to(device), labels.to(device)
-            labels = labels.unsqueeze(dim=1)
+#             # Transforming inputs
+#             inputs, labels = inputs.to(device), labels.to(device)
+#             labels = labels.unsqueeze(dim=1)
 
-            # Forward Pass
-            outputs = model(inputs)['out']
+#             # Forward Pass
+#             outputs = model(inputs)['out']
 
-            # Get loss
-            loss = criterion(outputs, labels)
+#             # Get loss
+#             loss = criterion(outputs, labels)
 
-            # Register on metrics
-            _, predicted = torch.max(outputs.data, 1)
-            metrics.batch(labels=labels, preds=predicted, loss=loss.item())
+#             # Register on metrics
+#             _, predicted = torch.max(outputs.data, 1)
+#             metrics.batch(labels=labels, preds=predicted, loss=loss.item())
 
-    # Print and return validation metrics
-    metrics.print_one_liner(phase='Val')
-    return metrics.summary()
+#     # Print and return validation metrics
+#     metrics.print_one_liner(phase='Val')
+#     return metrics.summary()
 
 
 def train_validate(model, train_loader, val_loader, optimizer,\
-                    criterion, device, epochs, save_criteria, weights_path, save_name):
+                    criterion, metrics, device, epochs, save_criteria,\
+                    weights_path, save_name):
     """ 
         train_validate Trains and validates a model.
 
@@ -108,6 +109,7 @@ def train_validate(model, train_loader, val_loader, optimizer,\
         @param val_loader Images to use for validation.
         @param optimizer Optimizer to update weights.
         @param criterion Loss criterion.
+        @param metrics Metrics to know from the training phases.
         @param device Use of GPU.
         @param epochs Amount of epochs to train.
         @param save_criteria What metric to use to save best weights.
@@ -119,14 +121,30 @@ def train_validate(model, train_loader, val_loader, optimizer,\
     best_criteria = 0
     best_model = {}
 
+    train_epoch = smp.utils.train.TrainEpoch(\
+        model,\
+        loss=criterion,\
+        metrics=metrics,\
+        optimizer=optimizer,\
+        device=device,\
+        verbose=True)
+
+    valid_epoch = smp.utils.train.ValidEpoch(\
+        model,\
+        loss=criterion,\
+        metrics=metrics,\
+        device=device,\
+        verbose=True)
+
     # Iterates over total epochs
     for epoch in range(1, epochs+1):
         print(f'Epoch {epoch}')
         # Train
-        metrics = train(model, train_loader, optimizer, criterion, device)
+        metrics = train_epoch.run(train_loader)
+        print(metrics)
         # Validate
         if val_loader:
-            metrics = validate(model, val_loader, criterion, device)
+            metrics = valid_epoch.run(val_loader)
 
         # Update best model
         if save_criteria == 'Loss': metrics['Model Loss'][0] *= -1 # Change sign of loss

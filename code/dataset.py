@@ -10,8 +10,7 @@ import cv2
 
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
+import albumentations as albu
 
 
 class CustomDataset(Dataset):
@@ -19,23 +18,24 @@ class CustomDataset(Dataset):
         Defines a Custom Dataset
     """
     
-    def __init__(self, ids, anns, transf):
+    def __init__(self, ids, masks, aug_transf, preproc_transf):
         """
             init Constructor
 
             @param self Object.
             @param ids Path to the images.
-            @param anns Annotations of the images.
+            @param masks Annotations of the images.
             @param transf Transformations to apply.
         """
         super().__init__()
 
         # Transforms
-        self.transforms = transf
+        self.aug_transf = aug_transf
+        self.preproc_transf = preproc_transf
 
         # Images IDS amd Labels
         self.ids = ids
-        self.anns = anns
+        self.masks = masks
 
         # Calculate len of data
         self.data_len = len(self.ids)
@@ -49,18 +49,27 @@ class CustomDataset(Dataset):
         """
         # Get an ID of a specific image
         id_img = self.ids[index]
-        id_ann = self.anns[index]
+        id_mask = self.masks[index]
 
         # Open Image
-        img = cv2.imread(id_img)
+        image = cv2.imread(id_img)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         # Open Annotation
-        ann = cv2.imread(id_ann, 0)
+        mask = cv2.imread(id_mask, 0)
 
         # Applies transformations
-        augmented = self.transforms(image=img, mask=ann)
+        # Apply augmentations
+        if self.aug_transf:
+            sample = self.aug_transf(image=image, mask=mask)
+            image, mask = sample['image'], sample['mask']
 
-        return (id_img, augmented['image'], augmented['mask']/255)
+        # Apply preprocessing
+        if self.preproc_transf:
+            sample = self.preproc_transf(image=image, mask=mask)
+            image, mask = sample['image'], sample['mask']
+
+        return image, mask
 
     def __len__(self):
         return self.data_len
@@ -75,11 +84,81 @@ def read_dataset(dir_img):
 
     images = pd.read_csv(dir_img)
     ids = images['ID_IMG'].tolist()
-    anns = images['ANNOTATION'].tolist()
-    return ids, anns
+    masks = images['ANNOTATION'].tolist()
+    return ids, masks
 
 
-def get_aug_dataloader(train_file, img_size, batch_size, data_mean, data_std):
+def get_training_augmentation(img_size):
+    train_transform = [
+        albu.Resize(img_size, img_size),
+
+        albu.HorizontalFlip(p=0.5),
+
+        albu.ShiftScaleRotate(scale_limit=0.5, rotate_limit=0, shift_limit=0.1, p=1, border_mode=0),
+
+        albu.IAAAdditiveGaussianNoise(p=0.2),
+        albu.IAAPerspective(p=0.5),
+
+        albu.OneOf(
+            [
+                albu.CLAHE(p=1),
+                albu.RandomBrightness(p=1),
+                albu.RandomGamma(p=1),
+            ],
+            p=0.9,
+        ),
+
+        albu.OneOf(
+            [
+                albu.IAASharpen(p=1),
+                albu.Blur(blur_limit=3, p=1),
+                albu.MotionBlur(blur_limit=3, p=1),
+            ],
+            p=0.9,
+        ),
+
+        albu.OneOf(
+            [
+                albu.RandomContrast(p=1),
+                albu.HueSaturationValue(p=1),
+            ],
+            p=0.9,
+        ),
+    ]
+    return albu.Compose(train_transform)
+
+
+def get_validation_augmentation(img_size):
+    """Add paddings to make image shape divisible by 32"""
+    test_transform = [
+        albu.Resize(img_size, img_size)
+    ]
+    return albu.Compose(test_transform)
+
+
+def to_tensor(x, **kwargs):
+    return x.transpose(2, 0, 1).astype('float32')
+
+
+def get_preprocessing(preprocessing_fn):
+    """Construct preprocessing transform
+
+    Args:
+        preprocessing_fn (callbale): data normalization function 
+            (can be specific for each pretrained neural network)
+    Return:
+        transform: albumentations.Compose
+
+    """
+
+    _transform = [
+        albu.Lambda(image=preprocessing_fn),
+        albu.Lambda(image=to_tensor, mask=to_tensor),
+    ]
+    return albu.Compose(_transform)
+
+
+def get_aug_dataloader(train_file, img_size, batch_size, proc_fn):
     """
         get_aug_dataloader Creates and return a dataloader with data augmentation.
 
@@ -91,32 +170,14 @@ def get_aug_dataloader(train_file, img_size, batch_size, data_mean, data_std):
     """
     
     # Read the dataset
-    ids, anns = read_dataset(train_file)
-
-    #Transformations
-    train_transform = A.Compose([
-        A.Resize(img_size, img_size),
-
-        # Augmentation
-        A.OneOrOther(
-            A.GaussianBlur(),
-            A.IAASharpen(),
-            p=0.25
-        ),
-        A.HorizontalFlip(p=0.5),
-        A.ShiftScaleRotate(p=0.8),
-        A.CLAHE(p=0.5),
-        A.RandomBrightnessContrast(p=0.8),    
-        A.RandomGamma(p=0.8),
-
-        A.Normalize(mean=data_mean, std=data_std),
-        ToTensorV2()
-    ])
+    ids, masks = read_dataset(train_file)
 
     print("Training Dataset Size: ", len(ids))
 
     # Create the dataset
-    train_dataset = CustomDataset(ids=ids, anns=anns, transf=train_transform)
+    train_dataset = CustomDataset(ids=ids, masks=masks,\
+                        aug_transf=get_training_augmentation(img_size=img_size),\
+                        preproc_transf=get_preprocessing(proc_fn))
 
     # Create the loader
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -124,7 +185,7 @@ def get_aug_dataloader(train_file, img_size, batch_size, data_mean, data_std):
     return train_loader
 
 
-def get_dataloader(data_file, img_size, batch_size, data_mean, data_std, data_split = 'Validation'):
+def get_dataloader(data_file, img_size, batch_size, proc_fn, data_split = 'Validation'):
     """
         get_dataloader Creates and returns a dataloader with no data augmentation.
 
@@ -137,19 +198,14 @@ def get_dataloader(data_file, img_size, batch_size, data_mean, data_std, data_sp
     """
 
     # Read the dataset
-    ids, anns = read_dataset(data_file)
-
-    # Transformations
-    test_transform = A.Compose([
-        A.Resize(img_size, img_size),
-        A.Normalize(mean=data_mean, std=data_std),
-        ToTensorV2()
-    ])
+    ids, masks = read_dataset(data_file)
 
     print(data_split+" Dataset Size: ", len(ids))
 
     # Create the dataset
-    dataset = CustomDataset(ids=ids, anns=anns, transf=test_transform)
+    dataset = CustomDataset(ids=ids, masks=masks,\
+                        aug_transf=get_validation_augmentation(img_size=img_size),\
+                        preproc_transf=get_preprocessing(proc_fn))
 
     # Create the loaders
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)

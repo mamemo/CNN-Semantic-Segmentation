@@ -5,45 +5,46 @@
     Definition of Models
 
     * Implemented Models:
-        - ResNet 18
-        - EfficientNet B4
+        - UNet
+        - FPN
+        - DeeplLabV3+
 """
 
 
-from torchvision import models
-from torchvision.models.segmentation.fcn import FCNHead
-from torchvision.models.segmentation.deeplabv3 import DeepLabHead
+import segmentation_models_pytorch as smp
 
 
-def fcn():
-    """
-        fcn FCN ResNet 50 model definition.
-    """
-
-    model = models.segmentation.fcn_resnet101(pretrained=True)
-
-    # To freeze layers
-    for param in model.parameters():
-        param.requires_grad = False
-
-    # New output layers
-    model.classifier = FCNHead(2048, 1)
-    model.aux_classifier = FCNHead(2048, 1)
-
+def unet(encoder, encoder_weights):
+    model = smp.Unet(\
+        encoder_name=encoder,\
+        encoder_weights=encoder_weights,\
+        classes=1,\
+        activation='sigmoid')
     return model
 
 
-def deeplab():
-    """
-        deeplab DeepLab V3 - ResNet 101 model definition.
-    """
-
-    model = models.segmentation.deeplabv3_resnet101(pretrained=True)
-
-    # To freeze layers
-    for param in model.parameters():
-        param.requires_grad = False
-
-    model.classifier = DeepLabHead(2048, 1)
-
+def fpn(encoder, encoder_weights):
+    model = smp.FPN(\
+        encoder_name=encoder,\
+        encoder_weights=encoder_weights,\
+        classes=1,\
+        activation='sigmoid')
     return model
+
+
+def deeplab(encoder, encoder_weights):
+    model = smp.DeepLabV3Plus(\
+        encoder_name=encoder,\
+        encoder_weights=encoder_weights,\
+        classes=1,\
+        activation='sigmoid')
+    return model
+
+
+def create_model(model, encoder, encoder_weights):
+    if model == 'unet':
+        return unet(encoder, encoder_weights)
+    elif model == 'fpn':
+        return fpn(encoder, encoder_weights)
+    elif model == 'deeplab':
+        return deeplab(encoder, encoder_weights)
