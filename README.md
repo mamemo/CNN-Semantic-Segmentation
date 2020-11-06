@@ -32,6 +32,7 @@ Before you clone this repo first do the following:
 3. More hyperparameters: Give more options to you (optimizers, losses, metrics, models).
 
 ## Author:
+* [__Segmentation Model Pytorch__](https://github.com/qubvel/segmentation_models.pytorch) - This project uses a lot of code made by them.
 * [__Mauro Mendez__](https://github.com/mamemo/)
 
 ## Contributing

@@ -16,7 +16,6 @@ from hyperparameters import parameters as params
 from models import create_model
 from dataset import get_dataloader
 from testing import test_report
-from focal_loss import FocalLoss
 
 
 def main():

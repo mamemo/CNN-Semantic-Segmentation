@@ -33,3 +33,4 @@ torchaudio==0.7.0
 torchvision==0.8.1+cu101
 typing-extensions==3.7.4.3
 albumentations==0.5.1
+segmentation-models-pytorch==0.1.2

@@ -18,8 +18,6 @@ parameters = {
 
     'img_size': 256, # Image input size (this might change depending on the model)
     'batch_size': 32, # Input batch size for training (you can change this depending on your GPU ram)
-    # 'data_mean': [0.485, 0.456, 0.406], # Mean values for each layer (RGB) (THIS CHANGE FOR EVERY DATASET)
-    # 'data_std': [0.229, 0.224, 0.225], # Std Dev values for each layer (RGB) (THIS CHANGE FOR EVERY DATASET)
 
     # Model
     'model': 'unet', # Model to train (This name has to correspond to a model from models.py)

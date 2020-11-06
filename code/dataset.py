@@ -91,6 +91,11 @@ def read_dataset(dir_img):
 
 
 def get_training_augmentation(img_size):
+    """
+        get_training_augmentation Augmentations for training data.
+
+        @param img_size Input size for the model.
+    """
     train_transform = [
         albu.Resize(img_size, img_size),
 
@@ -131,28 +136,29 @@ def get_training_augmentation(img_size):
 
 
 def get_validation_augmentation(img_size):
-    """Add paddings to make image shape divisible by 32"""
-    test_transform = [
-        albu.Resize(img_size, img_size)
-    ]
-    return albu.Compose(test_transform)
+    """
+        get_validation_augmentation Augmentations for val/test data.
+
+        @param img_size Input size for the model.
+    """
+    return albu.Resize(img_size, img_size)
 
 
-def to_tensor(x, **kwargs):
-    return x.transpose(2, 0, 1).astype('float32')
+def to_tensor(image, **kwargs):
+    """
+        to_tensor Transform an image to a pytorch tensor
+
+        @param image Image to be transformed.
+    """
+    return image.transpose(2, 0, 1).astype('float32')
 
 
 def get_preprocessing(preprocessing_fn):
-    """Construct preprocessing transform
-
-    Args:
-        preprocessing_fn (callbale): data normalization function 
-            (can be specific for each pretrained neural network)
-    Return:
-        transform: albumentations.Compose
-
     """
+        get_preprocessing Preprocessing transformations.
 
+        @param preprocessing_fn Transformations depending on the model.
+    """
     _transform = [
         albu.Lambda(image=preprocessing_fn),
         albu.Lambda(image=to_tensor, mask=to_tensor),
@@ -167,10 +173,9 @@ def get_aug_dataloader(train_file, img_size, batch_size, proc_fn):
         @param train_file Path to the training images csv.
         @param img_size Input size of the model.
         @param batch_size Size of the batch to feed the model with.
-        @param data_mean Mean values of the dataset (for normalization).
-        @param data_std Standard deviation values of the dataset (for normalization).
+        @param proc_fn Preprocssing depending on the model.
     """
-    
+
     # Read the dataset
     ids, masks = read_dataset(train_file)
 
@@ -194,8 +199,7 @@ def get_dataloader(data_file, img_size, batch_size, proc_fn, data_split = 'Valid
         @param data_file Path to the images csv.
         @param img_size Input size of the model.
         @param batch_size Size of the batch to feed the model with.
-        @param data_mean Mean values of the dataset (for normalization).
-        @param data_std Standard deviation values of the dataset (for normalization).
+        @param proc_fn Preprocssing depending on the model.
         @param data_split Training process where this is dataloader is used (Val or Test).
     """
 
